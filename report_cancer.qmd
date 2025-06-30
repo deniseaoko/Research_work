@@ -1,0 +1,736 @@
+---
+title: "A Study on the Impact of Pretreatment Haemoglobin, EBRT Techniques, and Brachytherapy Timing on Chemoradiotherapy Duration for Cervical Cancer Patients at Kenyatta National Hospital (2019-2023)"
+toc: True
+format: html
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+```{python}
+import pandas as pd
+import plotly_express as px 
+import numpy as np
+```
+
+
+```{python}
+# Import the data
+df = pd.read_excel("C:/Users/DOWINO5/OneDrive - United Nations/Desktop/graph courses/Reseaarch/analysis_data.xlsx")
+
+```
+
+```{python}
+# Expolatory Data Analysis
+# Dropping columns
+columns_to_drop = ['Column 3']
+df_new = df.drop(columns=columns_to_drop)
+
+```
+
+```{python}
+# Ensure your date column is in datetime format
+df_new['Patients Social demographics.\n1. Date of CC diagnosis (based on histopathology)'] = pd.to_datetime(df_new['Patients Social demographics.\n1. Date of CC diagnosis (based on histopathology)'])
+
+# Define the start and end dates
+start_date = '2019-01-01'
+end_date = '2023-12-31'
+
+# Filter the DataFrame
+filtered_df = df_new[(df_new['Patients Social demographics.\n1. Date of CC diagnosis (based on histopathology)'] >= start_date) & (df_new['Patients Social demographics.\n1. Date of CC diagnosis (based on histopathology)'] <= end_date)]
+```
+
+
+```{python}
+# Filling the age group using mode-most common age group
+most_common = filtered_df['2. Age of diagnosis '].mode()[0]
+filtered_df['2. Age of diagnosis '].fillna(most_common, inplace=True)
+```
+
+
+
+```{python}
+#remove spaces from the column names
+filtered_df.columns=filtered_df.columns.str.strip()
+```
+
+```{python}
+# renaming the columns
+filtered_df = filtered_df.rename(columns={
+    "Rt. Number:": "patient_id",
+    "2. Age of diagnosis":"patient_age_group",
+    "3. Patient's height (in centimeters)":"patient_height_cm",
+    "4. Patient's height in meters":"patient_height_m",
+    "Patient's weight (in kilograms)":"patient_weight_kg",
+    "5. Patient's Body Mass index":"BMI",
+    "Patients BMI Status":"BMI_status",
+    "7. Marital status":"marital_status",
+    "9. HIV status":"hiv_status",
+    "Patients Social demographics.\n1. Date of CC diagnosis (based on histopathology)":"date_cc_diagnosis",
+    "19. Actual overall treatment time":"treatment_time_days",
+    "18.Overall treatment time'":"treatment_time_category",
+    "Treatment_duration":"treatment_duration",
+    "Modifiable Factors\n11. Pretreatment Hb":"pretreatment_hb",
+    "EBRT technique used":"EBRT_technique_used",
+    "Timing of brachytherapy":"brachytherapy_timing",
+    "18.Overall treatment time":"treatment_time_category",
+    "Clinical stage group": "cancer_stage"
+
+
+ })
+
+```
+
+```{python}
+# counting the number of variables
+num_variables = filtered_df.shape[1]
+
+```
+
+```{python}
+#outliers in height
+fig13 = px.box(filtered_df, y="patient_height_cm", title="Box Plot of Patient Height")
+
+
+```
+
+```{python}
+#outliers in weight
+fig14 = px.box(filtered_df, y="patient_weight_kg", title="Box Plot of Patient Weight")
+
+```
+
+```{python}
+#outier in BMI
+fig15 = px.box(filtered_df, y="BMI", title="Box Plot of Patient BMI")
+
+```
+
+```{python}
+filtered_df['patient_height_cm'] = pd.to_numeric(filtered_df['patient_height_cm'], errors='coerce')
+
+```
+
+```{python}
+filtered_df['patient_weight_kg'] = pd.to_numeric(filtered_df['patient_weight_kg'], errors='coerce')
+```
+```{python}
+# Identify outliers using the IQR
+def get_outlier_summary(filtered_df, columns):
+    summary = []
+
+    for col in columns:
+        Q1 = filtered_df[col].quantile(0.25)
+        Q3 = filtered_df[col].quantile(0.75)
+        IQR = Q3 - Q1
+        lower = Q1 - 1.5 * IQR
+        upper = Q3 + 1.5 * IQR
+
+        outliers = filtered_df[(filtered_df[col] < lower) | (filtered_df[col] > upper)]
+        count = outliers.shape[0]
+
+        summary.append({
+            'Variable': col,
+            'Lower Bound': round(lower, 2),
+            'Upper Bound': round(upper, 2),
+            'Outlier Count': count
+        })
+
+    return pd.DataFrame(summary)
+
+# Define numeric variables to check
+numeric_columns = ['patient_height_cm', 'patient_weight_kg', 'BMI']
+
+# Get summary
+outlier_summary_df = get_outlier_summary(filtered_df, numeric_columns)
+
+
+```
+
+```{python}
+age_group = filtered_df['patient_age_group'].value_counts()
+```
+
+```{python}
+# Descriptive statistics
+Table1=filtered_df[['patient_height_cm', 'patient_weight_kg', 'BMI']].describe()
+```
+
+```{python}
+# Group the data by age and count
+age_counts = filtered_df['patient_age_group'].value_counts().reset_index()
+age_counts.columns = ['patient_age_group', 'count']
+
+fig1 = px.bar(age_counts,x="patient_age_group",y="count",text="count",title="Age Group Distribution",
+labels={"patient_age_group": "Age of Cancer Diagnosis", "count": "Number of Patients"})
+
+```
+
+```{python}
+# Group the data by marital status and count
+age_counts = filtered_df['marital_status'].value_counts().reset_index()
+age_counts.columns = ['marital_status', 'count']
+
+fig2 = px.bar(age_counts,x="marital_status",y="count",text="count",title="Marital Status of the Patients",
+labels={"marital_status": "Marital Status", "count": "Number of Patients"})
+```
+
+```{python}
+# Group the data by BMI status and count
+age_counts = filtered_df['BMI_status'].value_counts().reset_index()
+age_counts.columns = ['BMI_status', 'count']
+
+fig3 = px.bar(age_counts,x="BMI_status",y="count",text="count",title="BMI Status of the Patients",
+labels={"BMI_status": "BMI Status", "count": "Number of Patients"})
+```
+
+```{python}
+#Pie chart for marital status
+fig4 = px.pie(filtered_df, 
+             names='marital_status', 
+             title='Distribution of Marital Status',
+             hole=0.3)  # Set hole=0.0 for a full pie chart, or >0 for a donut chart
+
+
+```
+
+```{python}
+# Histogram for Height
+fig_height = px.histogram(filtered_df, x="patient_height_cm", nbins=30,
+                          title="Distribution of Patient Height (cm)",
+                          labels={"patient_height_cm": "Height (cm)"})
+
+```
+
+```{python}
+# Histogram for Weight
+fig_weight = px.histogram(filtered_df, x="patient_weight_kg", nbins=30,
+                          title="Distribution of Patient Weight (kg)",
+                          labels={"patient_weight_kg": "Weight (kg)"})
+
+```
+
+```{python}
+# Bivariate analysis
+fig5 = px.scatter(
+    filtered_df,
+    x="patient_height_cm",
+    y="patient_weight_kg",
+    color="BMI_status",
+    title="Scatter Plot of Weight vs. Height Colored by BMI Status",
+    labels={
+        "patient_height_cm": "Height (cm)",
+        "patient_weight_kg": "Weight (kg)",
+        "BMI_status": "BMI Status"
+    },
+    hover_data=["patient_age_group"]  # optional: adds age group to hover info
+)
+
+```
+
+```{python}
+bmi_counts = filtered_df.groupby(['patient_age_group', 'BMI_status']).size().reset_index(name='count')
+
+
+fig6 = px.bar(bmi_counts, x='patient_age_group', y='count', color='BMI_status',
+             title='BMI Status by Age Group', text='count').update_traces(textposition='inside').update_layout(barmode='stack', xaxis_title='Age Group', yaxis_title='Number of Patients')
+
+```
+
+```{python}
+marital_counts = filtered_df.groupby(['patient_age_group', 'marital_status']).size().reset_index(name='count')
+
+fig7 = px.bar(
+    marital_counts,
+    x='patient_age_group',
+    y='count',
+    color='marital_status',text='count',
+    title='Distribution of Marital Status by Age Group',
+    labels={'count': 'Number of Patients', 'patient_age_group': 'Age Group'}
+)
+
+```
+
+```{python}
+hiv_counts = filtered_df.groupby(['patient_age_group', 'hiv_status']).size().reset_index(name='count')
+
+fig8 = px.bar(
+    hiv_counts,
+    x='patient_age_group',
+    y='count',
+    color='hiv_status',text='count',
+    title='Distribution of HIV Status by Age Group',
+    labels={'count': 'Number of Patients', 'patient_age_group': 'Age Group'}
+)
+
+```
+
+```{python}
+fig_height = px.box(
+   filtered_df, 
+    x='patient_age_group', 
+    y='patient_height_cm',
+    title='Distribution of Height by Age Group',
+    labels={'patient_age_group': 'Age Group', 'patient_height_cm': 'Height (cm)'},
+    points='all'  # optionally show individual points
+)
+
+```
+
+```{python}
+fig_weight = px.box(
+   filtered_df, 
+    x='patient_age_group', 
+    y='patient_weight_kg',
+    title='Distribution of Weight by Age Group',
+    labels={'patient_age_group': 'Age Group', 'patient_weight_kg': 'Weight (kg)'},
+    points='all'  # optionally show individual points
+)
+
+```
+
+```{python}
+#outier in treatment duration
+fig26 = px.box(filtered_df, y="treatment_duration", title="Box Plot of treatment duration")
+
+```
+
+```{python}
+Table2=filtered_df[['treatment_duration']].describe()
+```
+
+```{python}
+cross_tab = pd.crosstab(filtered_df['EBRT_technique_used'], filtered_df['pretreatment_hb'], margins=True)
+
+
+
+```
+
+
+```{python}
+fig27 = px.violin(filtered_df, 
+                x='EBRT_technique_used', 
+                y='treatment_duration', 
+                box=True, 
+                points="all",
+                title='Treatment Duration by EBRT Technique',
+                labels={'treatment_duration': 'Treatment Duration (days)', 'EBRT_technique': 'EBRT Technique'})
+
+```
+
+```{python}
+fig28 = px.box(filtered_df, 
+             x='pretreatment_hb', 
+             y='treatment_duration', 
+             title='Treatment Duration by Pretreatment HB level',
+             labels={'treatment_duration': 'Treatment Duration (days)', 'pretreatment_hb': 'Pretreatment HB'},
+             points="all")  # Adds individual data points
+
+```
+
+```{python}
+fig29 = px.box(filtered_df, 
+             x='brachytherapy_timing', 
+             y='treatment_duration', 
+             title='Treatment Duration by brachythrapy Timing',
+             labels={'treatment_duration': 'Treatment Duration (days)', 'brachytherapy_timing': 'Brachytherapy Timing'},
+             points="all")  # Adds individual data points
+
+```
+
+```{python}
+# objective2
+group_2d = filtered_df[filtered_df['EBRT_technique_used'] == '2D']['treatment_duration']
+group_3d = filtered_df[filtered_df['EBRT_technique_used'] == '3D']['treatment_duration']
+
+#check for normality
+from scipy.stats import shapiro
+
+#check for equal variance
+from scipy.stats import levene
+levene(group_2d, group_3d)
+
+from scipy.stats import mannwhitneyu
+
+
+
+
+
+## Both your 2D and 3D groups' data (l EBRT for each group) do not meet the assumption of normality according to the Shapiro-Wilk test at a 0.05 significance level(p value < 0.05) we opt to use non parametric test.
+
+```
+
+```{python}
+# objective1
+hb_less12 = filtered_df[filtered_df['pretreatment_hb'] == '</=12 g/dl']['treatment_duration']
+hb_more12 = filtered_df[filtered_df['pretreatment_hb'] == '>12 g/dl']['treatment_duration']
+
+#check for normality
+from scipy.stats import shapiro
+
+
+#check for equal variance
+from scipy.stats import levene
+levene(hb_less12, hb_more12)
+
+from scipy.stats import mannwhitneyu
+
+
+
+
+
+## Based on the Shapiro-Wilk test, the treatment duration data for both haemoglobin level groups (<=12 g/dl and >12 g/dl) do not meet the assumption of normality at a 0.05 significance level.
+```
+
+```{python}
+# objective3
+# We assume non normality hence proceed with mann-whitney U test.
+brachy_during = filtered_df[filtered_df['brachytherapy_timing'] == 'During EBRT']['treatment_duration']
+brachy_after = filtered_df[filtered_df['brachytherapy_timing'] == 'After EBRT']['treatment_duration']
+
+# Perform the Mann–Whitney U test
+stat, p_value = mannwhitneyu(brachy_during, brachy_after, alternative='two-sided')
+
+
+
+```
+
+```{python}
+# objective4-fitting a model 
+
+import statsmodels.formula.api as smf
+
+# Reorder categories so that '51-60' is the reference
+filtered_df['patient_age_group'] = pd.Categorical(
+    filtered_df['patient_age_group'],
+    categories=['51-60', '< 30', '31-40', '41-50', '61-70', '70+'], 
+    ordered=True
+)
+model = smf.ols('treatment_duration ~ C(pretreatment_hb) + C(EBRT_technique_used) + C(brachytherapy_timing) + C(patient_age_group) + C(cancer_stage)', data=filtered_df).fit()
+
+
+```
+
+
+
+
+
+# Introduction
+This research aims to investigate the association between specific modifiable treatment factors and the overall duration of treatment for cervical cancer patients undergoing definitive chemoradiotherapy.
+
+Specifically, it seeks to understand how pretreatment haemoglobin levels, the techniques used for external beam radiotherapy (EBRT), and the timing of brachytherapy influence how long patients are on treatment. The study will focus on patients treated at Kenyatta National Hospital over a five-year period, from January 1, 2019, to December 31, 2023.
+
+## Exploratory Data Analysis Summary
+This section presents an exploratory data analysis (EDA) of a dataset containing patient demographics and health-related attributes. The primary objective is to uncover patterns, trends, and potential relationships between variables such as age group, height, weight, body mass index (BMI), BMI status, and marital status among patients diagnosed with cancer.
+
+### Overview of the dataset
+The dataset comprises clinical and demographic information collected from patients diagnosed with cancer.The dataset has undergone preliminary cleaning, including the renaming of columns for clarity, checking for duplicates, and initial handling of outliers and missing values. It serves as the basis for the subsequent exploratory data analysis.
+The dataset includes 130 patient records with 32 variables (2019 - 2023)
+
+### Data quality and Duplicates
+The dataset underwent an initial quality check to assess completeness, consistency, and accuracy. Most variables were well-structured with clearly defined categorical and numeric entries. There were no records with identical values across all variables, indicating an absence of complete duplicates. However, a few partially duplicated entries were reviewed and appropriately handled to maintain the integrity of the analysis. Additionally, the variable “Family history of cancer” had 75 missing values, which were noted and considered during the analysis process. Additionally, missing values were minimal, with only one missing record in the age group variable, which was reviewed and appropriately addressed. Overall, the dataset is considered to be of good quality and suitable for exploratory analysis.
+
+### Outlier Detection
+
+Outliers were retained in the dataset as they may reflect clinically significant variations rather than data entry errors. Given the nature of the data involving cancer patients extreme values in variables such as weight, height, and BMI may indicate critical health conditions, late-stage disease progression, or treatment side effects. Excluding such values could result in loss of important information and introduce bias into the analysis. Therefore, outliers were flagged and explored further, but not excluded from the primary analysis.
+
+```{python}
+outlier_summary_df
+```
+
+```{python}
+fig13
+```
+
+```{python}
+fig14
+```
+
+```{python}
+fig15
+```
+
+
+
+### Univariate Analysis
+35%(45/130) of the patients fall into the 51-60 age group,29% fall into the 41-50 age group and 18% fall into 61-70 age group.
+
+51%(71/140) of the patients are married,36% single,12% widowed and 1.4% separated.
+
+Height ranges from 103 cm to 194 cm , with median height of 159 cm
+
+Weight ranges 32 kgs to 109 kgs, with median weight of 65.5kgs.  
+
+BMI ranges from 12.8 to 56, with median BMI of 26.7
+
+51%(71/130) of the patients are married,36% single,12% widowed and 1.4% separated.
+
+
+```{python}
+age_group
+```
+
+
+```{python}
+Table1
+```
+
+```{python}
+fig1
+```
+
+```{python}
+fig2
+```
+
+```{python}
+fig3
+```
+
+```{python}
+fig4
+```
+
+```{python}
+fig_height
+```
+
+```{python}
+fig_weight
+```
+
+### Bivariate Analysis
+There is a visible difference in BMI status across age groups, with "Overweight" status being the highest across all age groups.
+
+Marital status varies significantly by age group, with younger groups more likely to be single.
+
+Majority of the patients who were diagnosed with cancer had unknown HIV status across all age groups.
+
+From the scatter plot, we observe a positive correlation between height and weight. Individuals in the 'Normal' BMI category are distributed around the middle range of both height and weight. Higher BMI statuses like 'Obese' cluster in areas of high weight, while 'Underweight' individuals tend to appear at lower weight and height combinations.
+
+```{python}
+fig5
+```
+
+```{python}
+fig6
+```
+
+```{python}
+fig7
+```
+
+```{python}
+fig8
+```
+
+Height analysis
+
+The box plot analysis demonstrates a relatively stable central tendency for patient height across all observed age groups, with the median height consistently ranging from approximately 156 cm to 161 cm. This suggests that the typical height of patients does not vary substantially across these age cohorts within the study population.
+
+For each age group, the interquartile range (IQR), which delineates the middle 50% of the data, indicates that the majority of patient heights are concentrated within a consistent and relatively contained range. This signifies a homogeneous core distribution of heights across different age categories.
+
+However, the analysis reveals the presence of notable extreme values (outliers) in two specific age groups:
+
+The 41-50 age group includes an individual with an exceptionally low height of approximately 103 cm.
+The 51-60 age group features an individual with an unusually high height of approximately 194 cm.
+
+These outliers suggest that while the central distributions are consistent, these particular age groups also encompass individuals at the far extremes of the height spectrum, potentially warranting further investigation.
+
+```{python}
+fig_height
+```
+
+Weight analysis
+
+The box plot analysis reveals a consistent central tendency for patient weight, with the median weight across all observed age groups ranging from approximately 65 kg to 73 kg. This indicates that, for most age cohorts, half of the patients fall below 65-73 kg and half fall above.
+
+A significant observation is that the majority of patients (specifically, the interquartile range or middle 50% of each distribution) are concentrated within a relatively narrow weight band within their respective age groups, demonstrating a consistent core distribution of weights across the sample.
+
+However, the age group of 41-50 years stands out due to the presence of notable outliers. This group includes individuals with extreme weight values, specifically one patient weighing approximately 109 kg and another weighing around 32 kg. These outliers suggest that while the central tendency for this age group is consistent with others, it also encompasses individuals at the far ends of the weight spectrum, potentially warranting further investigation into these specific cases or factors contributing to such variability.
+
+```{python}
+fig_weight
+```
+
+## Associations and Research Question Analysis
+
+Research questions
+
+1. What is the association between modifiable factors (pretreatment haemoglobin levels, EBRT techniques, and brachytherapy timing) and treatment duration for cervical cancer patients on definitive chemoradiotherapy in Kenyatta National Hospital between 1st January 2019 and 31st December 2023?
+
+1.3 Broad objective
+1. Identification of the impact of modifiable factors—pretreatment haemoglobin levels, external beam radiotherapy modalities, and timing of brachytherapy—on definitive chemoradiotherapy treatment duration in patients with cervical cancer at Kenyatta National Hospital between 2019 and 2023.
+
+1.3.1 Specific objectives 
+1. To compare the effect of pretreatment haemoglobin levels on the overall treatment period of definitive chemoradiotherapy among patients with cervical cancer at Kenyatta National Hospital. 
+2. Comparing the impact of external beam radiotherapy methods (2D vs 3DCRT) on overall treatment time among definitive chemoradiotherapy-treated cervical cancer patients. 
+3. To evaluate the impact of the timing of brachytherapy (interdigitated vs sequential) on the overall treatment time for definitive chemoradiotherapy among patients with cervical carcinoma.
+4. To assess the overall effect on treatment time of pretreatment haemoglobin levels, external beam radiotherapy technique, and timing of brachytherapy, while controlling for confounding factors including age and FIGO stage.
+
+## Descriptive statistics
+
+Outlier and descriptive statistics of Treatment duration: The dataset exhibits outliers indicating unusually prolonged treatment durations. These extreme values were intentionally retained in the analysis, as they are considered to represent critical clinical insights relevant to cancer patient management rather than merely data anomalies.
+
+The mean treatment duration is 64 days with a maximum duration of 172 and minimum of 16 days.
+
+```{python}
+fig26
+```
+
+
+```{python}
+#Description of the treatment_duration(days)
+Table2
+```
+
+EBRT Technique: Out of the 85 patients who received 3D-CRT, 47 (55%) had pretreatment hb which was greater than 12 g/dl. While out of the 45 patient who received 2D_CRT, 24(53%) had pretreatment hb of less than or equal to 12 g/dl
+
+Hemoglobin status: Out of 130 patients,85 (65%)received 3D-EBRT and 45(35%) got 2D-EBRT.
+
+Summary: The 3D-EBRT was the most common utilized technique for cancer patients at Kenyatta National Hospital during the study period, accounting for nearly two-thirds of the patients, while 2D-EBRT was used for the remaining one-third.The analysis indicates that pretreatment hemoglobin status (categorized as >12 g/dl vs. <=12 g/dl) does not appear to be strongly associated with the specific EBRT technique used (2D vs. 3D) in this patient cohort, based purely on these proportions.
+```{python}
+# EBRT Technique vs Hemoglobin Status
+cross_tab
+```
+
+## Treatment Duration by EBRT Technique
+
+The violin plot indicates that patients treated with 3D EBRT had a wider range of treatment durations with some outliers. The 3d EBRT technique showed a more consistent duration, clustered around 44–65 days. Median treatment duration was shortest for 3D EBRT techniques.
+
+```{python}
+fig27
+```
+
+## Treatment Duration by Pretreatment Haemoglobin level
+
+The box plot suggests that patients presenting with low pretreatment haemoglobin (Hb <= 12 g/dl) tend to experience a longer median treatment duration compared to those with normal/high pretreatment haemoglobin (Hb > 12 g/dl). Furthermore, the variability in treatment duration appears to be greater among patients with low Hb, indicated by a wider interquartile range, suggesting a less predictable treatment course in this group. Both groups exhibit outliers, highlighting individual patients with unusually short or long durations, which warrant further clinical investigation.
+
+```{python}
+fig28
+```
+
+## Treatment Duration by brachythreapy Timing
+
+The box plot visually demonstrates a significant difference in the central tendency of treatment duration based on brachytherapy timing. Patients in the 'Delayed' brachytherapy group exhibited a higher median treatment duration compared to those whose brachytherapy was initiated 'on-time' or 'early'.
+
+Furthermore, the 'Delayed' group displayed considerably greater variability in treatment durations, as evidenced by a notably wider interquartile range (IQR). This suggests a less predictable and more heterogeneous range of care durations within this subgroup. The presence of several outliers in the 'Delayed' group, indicating individual patients with exceptionally prolonged treatment durations, further underscores this inconsistency. These outliers suggest that a subset of patients in the 'Delayed' group experienced disproportionately extended overall treatment times, which may point to specific challenges or compounding factors contributing to their care trajectory.
+
+```{python}
+fig29
+```
+
+# Analysis of the Specific objectives 
+
+## 1. To compare the effect of pretreatment haemoglobin levels on the overall treatment period of definitive chemoradiotherapy among patients with cervical cancer at Kenyatta National Hospital.
+
+Analysis
+
+Null Hypothesis: There is no statistically significant difference in the overall treatment period for cervical cancer patients (on definitive chemoradiotherapy at Kenyatta National Hospital) between those with lower pretreatment haemoglobin levels (≤ 12 g/dl) and those with higher pretreatment haemoglobin levels (> 12 g/dl).
+
+Alternative Hypothesis : There is a statistically significant difference in the overall treatment period for cervical cancer patients (on definitive chemoradiotherapy at Kenyatta National Hospital) between those with lower pretreatment haemoglobin levels (≤ 12 g/dl) and those with higher pretreatment haemoglobin levels (> 12 g/dl)
+
+Results
+Based on the Mann-Whitney U test results (p = 0.144), which was appropriately chosen due to the non-normal distribution of treatment duration in both haemoglobin groups, there is no statistically significant evidence to conclude that pretreatment haemoglobin levels (categorized as ≤ 12 g/dl vs. > 12 g/dl) have an effect on the overall treatment period for cervical cancer patients receiving definitive chemoradiotherapy at Kenyatta National Hospital. 
+
+```{python}
+print("</=12 g/dl:", shapiro(hb_less12))
+print(">12 g/dl:", shapiro(hb_more12))
+
+# Perform the Mann–Whitney U test
+stat, p_value = mannwhitneyu(hb_less12, hb_more12, alternative='two-sided')
+
+# Print the result
+print(f"Mann–Whitney U Test Statistic: {stat}")
+print(f"P-value: {p_value}")
+```
+
+## 2. Comparing the impact of external beam radiotherapy methods (2D vs 3DCRT) on overall treatment time among definitive chemoradiotherapy-treated cervical cancer patients.
+
+Analysis
+
+Null Hypothesis: There is no statistically significant difference in the mean (or median) overall treatment time between cervical cancer patients treated with 2D-CRT and those treated with 3D-CRT.
+
+Alternative Hypothesis: There is a statistically significant difference in the mean (or median) overall treatment time between cervical cancer patients treated with 2D-CRT and those treated with 3D-CRT.
+
+Results
+
+A p-value of 0.3227 means that we fail to reject the null hypothesis and conclude that based on the Mann–Whitney U test (p = 0.3227), there was no statistically significant difference in treatment duration between cervical cancer patients treated with 2D-EBRT radiotherapy and those treated with 3D-EBRT at Kenyatta National Hospital from January 2019 to December 2023. This suggests that the EBRT technique alone may not have had a measurable impact on the overall treatment duration within the cancer patients.
+
+```{python}
+
+print("2D:", shapiro(group_2d))
+print("3D:", shapiro(group_3d))
+
+# Perform the Mann–Whitney U test
+stat, p_value = mannwhitneyu(group_2d, group_3d, alternative='two-sided')
+
+# Print the result
+print(f"Mann–Whitney U Test Statistic: {stat}")
+print(f"P-value: {p_value}")
+```
+
+
+## 3. To evaluate the impact of the timing of brachytherapy (interdigitated vs sequential) on the overall treatment time for definitive chemoradiotherapy among patients with cervical carcinoma.
+
+Analysis
+
+Null Hypothesis : There is no statistically significant difference in the overall treatment time between cervical cancer patients who received interdigitated brachytherapy and those who received sequential brachytherapy.
+
+Alternative Hypothesis : There is a statistically significant difference in the overall treatment time between cervical cancer patients who received interdigitated brachytherapy and those who received sequential brachytherapy.
+
+Results
+There was limitation in the research findings for this objective. Due to the small sample size in one of the group, statistical comparisons could not be performed, and this limited the generalizability or conclusiveness of the findings regarding those specific comparisons.
+
+However, based on the box plot, the 'Delayed' group displayed considerably greater variability in treatment durations, as evidenced by a notably wider interquartile range (IQR). This suggests a less predictable and more heterogeneous range of care durations within this subgroup. The presence of several outliers in the 'Delayed' group, indicating individual patients with exceptionally prolonged treatment durations, further underscores this inconsistency. These outliers suggest that a subset of patients in the 'Delayed' group experienced disproportionately extended overall treatment times, which may point to specific challenges or compounding factors contributing to their care trajectory.
+
+```{python}
+fig29
+```
+
+## 4. To assess the overall effect on treatment time of pretreatment haemoglobin levels, external beam radiotherapy technique, and timing of brachytherapy, while controlling for confounding factors including age and FIGO stage.
+
+Multivariable Regression Analysis
+
+Analyis
+Outcome variable: Treatment duration (days)
+
+Independent variables: pretreatment haemoglobin level,EBRT technique and timing of the brachytherapy
+
+Confounders: Age and FIGO stage
+
+Summary of Regression analysis on Treatment Time
+
+```{python}
+print(model.summary())
+```
+
+
+Multivariable Linear Regression Summary
+
+A multivariable linear regression analysis was conducted to evaluate the association between treatment duration and key clinical factors, including pretreatment haemoglobin levels, external beam radiotherapy (EBRT) technique, timing of brachytherapy, age group, and cancer stage. The reference age group was set as 51–60 years.
+
+Model Fit
+The model was statistically significant (F(17,112) = 1.91, p = 0.0241), explaining approximately 22.5% of the variance in treatment duration (R² = 0.225, adjusted R² = 0.107).
+
+Significant Findings
+Timing of Brachytherapy: Patients who received brachytherapy during EBRT had a significantly shorter treatment duration (β = −17.52 days, p = 0.001) compared to those who received it afterward.
+
+Age Group (31–40 years): Patients aged 31–40 had a longer treatment duration compared to the 51–60 group (β = +12.21 days, p = 0.057), which was borderline significant.
+
+Non-significant Variables
+Pretreatment haemoglobin (>12 g/dl) and EBRT technique (3D vs. 2D) were not significantly associated with treatment duration (p > 0.3).
+
+Other age groups and FIGO cancer stages did not show statistically significant effects.
+
+Model Diagnostics
+Residuals exhibited non-normality (Jarque-Bera p < 0.001), suggesting potential skewness or outliers. However, there was no strong evidence of autocorrelation (Durbin-Watson = 1.89) or multicollinearity (Condition Number = 32.5).
+
+Point to Note: In regression output, categorical variables are represented using dummy (indicator) variables, and one category is always used as the reference (baseline) group, against which the other categories are compared.In the mode,31–40 is the reference category — it's the group against which all other age groups are being compared.
+
+Conclusion:
+The regression analysis indicates that timing of brachytherapy is a significant determinant of treatment duration among cervical cancer patients. Specifically, initiating brachytherapy during EBRT is associated with a significantly shorter overall treatment time, supporting its integration into concurrent treatment protocols.
+
+While age group 31–40 years showed a trend toward longer treatment durations compared to the 51–60 age group, this finding was only marginally significant and warrants further investigation. Other factors such as pretreatment haemoglobin levels, EBRT technique, and cancer stage did not show significant independent effects on treatment duration in this model.
+
+These results highlight the potential for treatment scheduling interventions, particularly the timing of brachytherapy, to improve efficiency and reduce delays in cancer therapy delivery. Further research could explore logistical or clinical barriers to earlier brachytherapy to inform implementation strategies.
